@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CAJAMAG · Plataforma Académica</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#1e3a5f;--blue2:#2563eb;--blue3:#3b82f6;--bluebg:#eff6ff;
+  --green:#166534;--greenbg:#dcfce7;--red:#991b1b;--redbg:#fee2e2;
+  --amber:#92400e;--amberbg:#fef3c7;--purple:#6d28d9;--purplebg:#ede9fe;
+  --gray:#64748b;--graybg:#f8fafc;--bdr:#e2e8f0;
+  --dark:#0f172a;--text:#1e293b;--text2:#475569;--text3:#94a3b8;
+}
+body{font-family:'Inter',sans-serif;color:var(--text);background:var(--graybg);overflow:hidden}
+/* Loader */
+#loader{position:fixed;inset:0;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;transition:opacity .3s}
+#loader h1{font-family:'Playfair Display',serif;font-size:32px;color:var(--blue);margin-bottom:6px}
+#loader p{color:var(--gray);font-size:13px;margin-bottom:28px}
+.spin{width:36px;height:36px;border:3px solid var(--bdr);border-top-color:var(--blue2);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Screens */
+.scr{display:none;height:100vh;overflow:hidden}
+.scr.on{display:flex}
+/* Login */
+#s-login{background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#1e40af 100%);align-items:center;justify-content:center;padding:20px}
+.lbox{background:#fff;border-radius:16px;padding:36px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.llogo{font-family:'Playfair Display',serif;font-size:26px;font-weight:900;color:var(--blue)}
+.lsub{font-size:11px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:24px;margin-top:2px}
+.ltabs{display:flex;border:1px solid var(--bdr);border-radius:8px;overflow:hidden;margin-bottom:20px}
+.ltab{flex:1;padding:9px;text-align:center;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);background:var(--graybg);transition:all .2s}
+.ltab.on{background:var(--blue);color:#fff}
+/* Form */
+.lbl{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.inp{width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:8px;font-size:14px;outline:none;transition:border .2s;font-family:'Inter',sans-serif;background:#fff}
+.inp:focus{border-color:var(--blue2)}
+.lf{margin-bottom:14px}
+.remember{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);margin-bottom:14px;cursor:pointer}
+.remember input{accent-color:var(--blue2);width:14px;height:14px;cursor:pointer}
+.errmsg{color:var(--red);font-size:12px;margin-top:8px;display:none}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:9px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:none;transition:all .15s;font-family:'Inter',sans-serif}
+.btn-blue{background:var(--blue2);color:#fff}.btn-blue:hover{background:#1d4ed8}
+.btn-dark{background:var(--blue);color:#fff}.btn-dark:hover{background:#1e3a5f}
+.btn-ghost{background:transparent;border:1.5px solid var(--bdr);color:var(--text2)}.btn-ghost:hover{background:var(--graybg)}
+.btn-red{background:var(--redbg);color:var(--red)}.btn-red:hover{background:#fecaca}
+.btn-green{background:var(--greenbg);color:var(--green)}
+.btn-sm{padding:5px 10px;font-size:11px}
+.btn-block{width:100%}
+/* Layout */
+.layout{display:flex;width:100%;height:100vh;overflow:hidden}
+.sidebar{width:220px;min-width:220px;background:#fff;border-right:1px solid var(--bdr);display:flex;flex-direction:column;overflow-y:auto}
+.sb-top{padding:16px 14px 12px;border-bottom:1px solid var(--bdr)}
+.sb-logo{font-family:'Playfair Display',serif;font-size:15px;font-weight:900;color:var(--blue)}
+.sb-role{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--text3);margin-top:2px}
+.sb-nav{padding:8px;flex:1}
+.sb-sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text3);padding:10px 8px 4px}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text2);transition:all .15s;margin-bottom:1px}
+.ni:hover{background:var(--graybg);color:var(--text)}
+.ni.on{background:var(--bluebg);color:var(--blue2);font-weight:700}
+.ni .ico{font-size:15px;width:20px;text-align:center}
+.sb-bot{padding:10px 8px;border-top:1px solid var(--bdr)}
+/* Main */
+.main{flex:1;overflow-y:auto;background:var(--graybg);display:flex;flex-direction:column}
+/* Page header */
+.ph{padding:20px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.ph-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:var(--dark)}
+.ph-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.ph-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* Filter bar */
+.fbar{padding:10px 24px;background:#fff;border-bottom:1px solid var(--bdr);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.fbar select,.fbar input{padding:6px 10px;border:1.5px solid var(--bdr);border-radius:7px;font-size:12px;font-family:'Inter',sans-serif;outline:none;background:#fff;transition:border .15s}
+.fbar select:focus,.fbar input:focus{border-color:var(--blue2)}
+/* Content */
+.content{padding:16px 24px 24px;flex:1}
+/* Cards */
+.card{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px}
+.card-pad{padding:20px}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* Stat card */
+.scard{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px;text-align:center}
+.scard-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:4px}
+.scard-val{font-family:'Playfair Display',serif;font-size:28px;font-weight:900}
+.scard-sub{font-size:10px;color:var(--text3);margin-top:3px}
+/* Table */
+.tw{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{background:var(--blue);color:#fff;padding:9px 11px;text-align:left;font-weight:600;font-size:11px;white-space:nowrap}
+.tbl td{padding:8px 11px;border-bottom:1px solid var(--bdr);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fafafa}
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.b-sup{background:var(--greenbg);color:var(--green)}
+.b-alt{background:var(--bluebg);color:var(--blue2)}
+.b-bas{background:var(--amberbg);color:var(--amber)}
+.b-baj{background:var(--redbg);color:var(--red)}
+.b-gray{background:#f1f5f9;color:var(--text3)}
+.b-purple{background:var(--purplebg);color:var(--purple)}
+/* Progress bar */
+.bar{height:6px;background:var(--bdr);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .4s}
+/* Modal */
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.mov.on{display:flex}
+.mbox{background:#fff;border-radius:14px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.mbox.wide{max-width:680px}
+.mhdr{padding:16px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.mtitle{font-weight:800;font-size:14px}
+.mclose{background:none;border:none;cursor:pointer;font-size:18px;color:var(--text3);padding:2px 6px;border-radius:4px}
+.mclose:hover{background:var(--graybg)}
+.mbody{padding:18px 20px}
+.mfoot{padding:12px 20px;border-top:1px solid var(--bdr);display:flex;justify-content:flex-end;gap:8px}
+/* Toast */
+#toast{position:fixed;bottom:20px;right:20px;padding:10px 16px;border-radius:9px;font-size:13px;font-weight:600;color:#fff;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none}
+#toast.show{opacity:1}
+#toast.ok{background:#166534}
+#toast.err{background:#991b1b}
+/* Chart containers */
+.chart-box{position:relative;background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:16px}
+.chart-title{font-weight:700;font-size:13px;margin-bottom:12px;color:var(--dark)}
+.chart-sub{font-size:11px;color:var(--text3);margin-top:4px}
+canvas{max-width:100%}
+/* Alert banner */
+.alert-banner{border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.alert-crit{background:var(--redbg);border:1px solid #fecaca}
+.alert-warn{background:var(--amberbg);border:1px solid #fde68a}
+.alert-ok{background:var(--greenbg);border:1px solid #86efac}
+/* Responsive */
+@media(max-width:640px){
+  .sidebar{width:56px;min-width:56px}
+  .sb-logo,.sb-role,.sb-sec,.ni span:not(.ico){display:none}
+  .ni{justify-content:center}
+  .content,.ph,.fbar{padding-left:14px;padding-right:14px}
+  .g2{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div id="loader"><h1>CAJAMAG</h1><p>Cargando plataforma...</p><div class="spin"></div></div>
+<div id="toast"></div>
+
+<!-- ══ LOGIN ══ -->
+<div id="s-login" class="scr" style="display:none">
+  <div class="lbox">
+    <div class="llogo">CAJAMAG</div>
+    <div class="lsub">Plataforma Académica</div>
+    <div class="ltabs">
+      <div class="ltab on" id="tab-admin" onclick="setLoginTab('admin')">👨‍💼 Admin / Docente</div>
+      <div class="ltab" id="tab-est" onclick="setLoginTab('est')">🎓 Estudiante</div>
+    </div>
+    <div id="fadmin">
+      <div class="lf"><label class="lbl">Usuario</label><input class="inp" id="l-user" type="text" autocomplete="username" placeholder="admin" onkeydown="if(event.key==='Enter')login()"></div>
+      <div class="lf"><label class="lbl">Contraseña</label><input class="inp" id="l-pass" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()"></div>
+    </div>
+    <div id="fest" style="display:none">
+      <div class="lf"><label class="lbl">Número de cédula</label><input class="inp" id="l-ced" type="text" autocomplete="username" placeholder="Tu número de cédula" onkeydown="if(event.key==='Enter')login()"></div>
+    </div>
+    <label class="remember"><input type="checkbox" id="l-rem"> Recordar en este dispositivo</label>
+    <button class="btn btn-dark btn-block" onclick="login()">Ingresar →</button>
+    <div class="errmsg" id="l-err">Usuario o contraseña incorrectos</div>
+  </div>
+</div>
+
+<!-- ══ ADMIN ══ -->
+<div id="s-admin" class="scr">
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-top"><div class="sb-logo">CAJAMAG</div><div class="sb-role">Administrador</div></div>
+      <div class="sb-nav">
+        <div class="sb-sec">Principal</div>
+        <div class="ni on" id="an-dashboard" onclick="aTab('dashboard',this)"><span class="ico">📊</span><span>Dashboard</span></div>
+        <div class="sb-sec">Gestión</div>
+        <div class="ni" id="an-grupos" onclick="aTab('grupos',this)"><span class="ico">🏫</span><span>Grupos</span></div>
+        <div class="ni" id="an-estudiantes" onclick="aTab('estudiantes',this)"><span class="ico">👥</span><span>Estudiantes</span></div>
+        <div class="ni" id="an-docentes" onclick="aTab('docentes',this)"><span class="ico">👩‍🏫</span><span>Docentes</span></div>
+        <div class="ni" id="an-simulacros" onclick="aTab('simulacros',this)"><span class="ico">📝</span><span>Simulacros</span></div>
+        <div class="ni" id="an-notas" onclick="aTab('notas',this)"><span class="ico">📋</span><span>Notas</span></div>
+        <div class="ni" id="an-documentos" onclick="aTab('documentos',this)"><span class="ico">📁</span><span>Documentos</span></div>
+        <div class="sb-sec">Análisis</div>
+        <div class="ni" id="an-comparativo" onclick="aTab('comparativo',this)"><span class="ico">📈</span><span>Comparativo</span></div>
+        <div class="ni" id="an-semaforo" onclick="aTab('semaforo',this)"><span class="ico">🚦</span><span>Semáforo</span></div>
+        <div class="ni" id="an-alertas" onclick="aTab('alertas',this)"><span class="ico">🔔</span><span>Alertas</span></div>
+        <div class="ni" id="an-simulador" onclick="aTab('simulador',this)"><span class="ico">🎯</span><span>Simulador</span></div>
+        <div class="sb-sec">Sistema</div>
+        <div class="ni" id="an-config" onclick="aTab('config',this)"><span class="ico">⚙️</span><span>Config</span></div>
+      </div>
+      <div class="sb-bot"><button class="btn btn-ghost btn-sm btn-block" onclick="logout()">Cerrar sesión</button></div>
+    </div>
+    <div class="main" id="amain"></div>
+  </div>
+</div>
+
+<!-- ══ DOCENTE ══ -->
+<div id="s-docente" class="scr">
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-top"><div class="sb-logo">CAJAMAG</div><div class="sb-role" id="d-role">Docente</div></div>
+      <div class="sb-nav">
+        <div class="sb-sec">Análisis</div>
+        <div class="ni on" id="dn-comparativo" onclick="dTab('comparativo',this)"><span class="ico">📈</span><span>Comparativo</span></div>
+        <div class="ni" id="dn-semaforo" onclick="dTab('semaforo',this)"><span class="ico">🚦</span><span>Semáforo</span></div>
+        <div class="ni" id="dn-alertas" onclick="dTab('alertas',this)"><span class="ico">🔔</span><span>Alertas</span></div>
+        <div class="ni" id="dn-notas" onclick="dTab('notas',this)"><span class="ico">📋</span><span>Notas</span></div>
+        <div class="ni" id="dn-documentos" onclick="dTab('documentos',this)"><span class="ico">📁</span><span>Documentos</span></div>
+        <div class="ni" id="dn-simulador" onclick="dTab('simulador',this)"><span class="ico">🎯</span><span>Simulador</span></div>
+      </div>
+      <div class="sb-bot"><button class="btn btn-ghost btn-sm btn-block" onclick="logout()">Cerrar sesión</button></div>
+    </div>
+    <div class="main" id="dmain"></div>
+  </div>
+</div>
+
+<!-- ══ ESTUDIANTE ══ -->
+<div id="s-est" class="scr">
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-top" id="est-sb-top"><div class="sb-logo">CAJAMAG</div><div class="sb-role">Estudiante</div></div>
+      <div class="sb-nav">
+        <div class="sb-sec">Mi rendimiento</div>
+        <div class="ni on" id="en-inicio" onclick="eTab('inicio',this)"><span class="ico">🏠</span><span>Inicio</span></div>
+        <div class="ni" id="en-resultados" onclick="eTab('resultados',this)"><span class="ico">📊</span><span>Mis resultados</span></div>
+        <div class="ni" id="en-evolucion" onclick="eTab('evolucion',this)"><span class="ico">📈</span><span>Evolución</span></div>
+        <div class="ni" id="en-nivel" onclick="eTab('nivel',this)"><span class="ico">🚦</span><span>Mi nivel</span></div>
+        <div class="ni" id="en-simulador" onclick="eTab('simulador',this)"><span class="ico">🎯</span><span>Simulador</span></div>
+        <div class="sb-sec">Archivos</div>
+        <div class="ni" id="en-docs" onclick="eTab('docs',this)"><span class="ico">📁</span><span>Documentos</span></div>
+      </div>
+      <div class="sb-bot"><button class="btn btn-ghost btn-sm btn-block" onclick="logout()">Cerrar sesión</button></div>
+    </div>
+    <div class="main" id="emain"></div>
+  </div>
+</div>
+
+<!-- ══ MODALES ══ -->
+<div class="mov" id="m-confirm">
+  <div class="mbox" style="max-width:340px">
+    <div class="mhdr"><span class="mtitle">Confirmar</span></div>
+    <div class="mbody" id="m-confirm-msg" style="padding:20px;font-size:14px"></div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cm('m-confirm')">Cancelar</button><button class="btn btn-red" id="m-confirm-ok">Confirmar</button></div>
+  </div>
+</div>
+
+<div class="mov" id="m-grupo">
+  <div class="mbox">
+    <div class="mhdr"><span class="mtitle" id="m-grupo-t">Nuevo Grupo</span><button class="mclose" onclick="cm('m-grupo')">✕</button></div>
+    <div class="mbody">
+      <div class="lf"><label class="lbl">Nombre del grupo</label><input class="inp" id="mg-nombre" placeholder="Ej: CAJAMAG 11°"></div>
+      <div class="lf"><label class="lbl">Grado</label><input class="inp" id="mg-grado" placeholder="Ej: 11"></div>
+    </div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cm('m-grupo')">Cancelar</button><button class="btn btn-blue" onclick="saveGrupo()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="mov" id="m-est">
+  <div class="mbox">
+    <div class="mhdr"><span class="mtitle" id="m-est-t">Nuevo Estudiante</span><button class="mclose" onclick="cm('m-est')">✕</button></div>
+    <div class="mbody">
+      <div class="lf"><label class="lbl">Nombre completo</label><input class="inp" id="me-nombre" placeholder="Apellidos Nombres"></div>
+      <div class="lf"><label class="lbl">Cédula</label><input class="inp" id="me-cedula" placeholder="Número de cédula"></div>
+      <div class="lf"><label class="lbl">Grado</label><input class="inp" id="me-grado" placeholder="11"></div>
+      <div class="lf"><label class="lbl">Grupo</label><select class="inp" id="me-grupo"><option value="">Seleccionar grupo</option></select></div>
+    </div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cm('m-est')">Cancelar</button><button class="btn btn-blue" onclick="saveEst()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="mov" id="m-doc">
+  <div class="mbox">
+    <div class="mhdr"><span class="mtitle" id="m-doc-t">Nuevo Docente</span><button class="mclose" onclick="cm('m-doc')">✕</button></div>
+    <div class="mbody">
+      <div class="lf"><label class="lbl">Nombre completo</label><input class="inp" id="md-nombre"></div>
+      <div class="lf"><label class="lbl">Usuario</label><input class="inp" id="md-usuario"></div>
+      <div class="lf"><label class="lbl">Contraseña</label><input class="inp" type="password" id="md-pass" placeholder="Contraseña"></div>
+      <div class="lf"><label class="lbl">Grupos asignados</label><div id="md-grupos"></div></div>
+    </div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cm('m-doc')">Cancelar</button><button class="btn btn-blue" onclick="saveDoc()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="mov" id="m-sim">
+  <div class="mbox">
+    <div class="mhdr"><span class="mtitle" id="m-sim-t">Nuevo Simulacro</span><button class="mclose" onclick="cm('m-sim')">✕</button></div>
+    <div class="mbody">
+      <div class="lf"><label class="lbl">Nombre</label><input class="inp" id="ms-nombre" placeholder="Ej: 1er Simulacro 2026"></div>
+      <div class="lf"><label class="lbl">Fecha</label><input class="inp" type="date" id="ms-fecha"></div>
+      <div class="lf"><label class="lbl">Descripción</label><input class="inp" id="ms-desc" placeholder="Opcional"></div>
+      <div class="g2">
+        <div class="lf"><label class="lbl">Preguntas Lectura</label><input class="inp" type="number" id="ms-lec" value="41"></div>
+        <div class="lf"><label class="lbl">Preguntas Matemáticas</label><input class="inp" type="number" id="ms-mat" value="50"></div>
+        <div class="lf"><label class="lbl">Preguntas C. Naturales</label><input class="inp" type="number" id="ms-bio" value="53"></div>
+        <div class="lf"><label class="lbl">Preguntas C. Sociales</label><input class="inp" type="number" id="ms-soc" value="50"></div>
+        <div class="lf"><label class="lbl">Preguntas Inglés</label><input class="inp" type="number" id="ms-ing" value="45"></div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cm('m-sim')">Cancelar</button><button class="btn btn-blue" onclick="saveSim()">Guardar</button></div>
+  </div>
+</div>
+
+<div class="mov" id="m-documento">
+  <div class="mbox">
+    <div class="mhdr"><span class="mtitle">Agregar Documento</span><button class="mclose" onclick="cm('m-documento')">✕</button></div>
+    <div class="mbody">
+      <div class="lf"><label class="lbl">Estudiante</label><select class="inp" id="mdoc-est"><option value="">Seleccionar...</option></select></div>
+      <div class="lf"><label class="lbl">Tipo</label>
+        <select class="inp" id="mdoc-tipo">
+          <option value="resultado">Resultado</option>
+          <option value="taller">Taller</option>
+          <option value="observacion">Observación</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="lf"><label class="lbl">Nombre</label><input class="inp" id="mdoc-nombre" placeholder="Nombre del documento"></div>
+      <div class="lf"><label class="lbl">URL (Google Drive)</label><input class="inp" id="mdoc-url" placeholder="https://drive.google.com/..."></div>
+      <div class="lf"><label class="lbl">Observación</label><input class="inp" id="mdoc-obs" placeholder="Opcional"></div>
+    </div>
+    <div class="mfoot"><button class="btn btn-ghost" onclick="cm('m-documento')">Cancelar</button><button class="btn btn-blue" onclick="saveDocumento()">Guardar</button></div>
+  </div>
+</div>
+
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════
+// CAJAMAG v9 — Arquitectura limpia
+// ══════════════════════════════════════════════════════
+
+// ── Config Supabase ──
+const SUPA_URL = 'https://ncmrydkqkpgozunfwyyi.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jbXJ5ZGtxa3Bnb3p1bmZ3eXlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc3ODEwNTgsImV4cCI6MjA5MzM1NzA1OH0.4ehxwkoNJploEShCCDh5eR0gfM1BLLR8p-LKU3ZPINo';
+const db = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+// ── Estado global ──
+const APP = {
+  role: null, user: null,
+  grupos:[], students:[], simulacros:[], notas:{}, docs:[], docentes:[], config:{}
+};
+
+// ── Estado de filtros — setFiltro() dispara re-render automático ──
+const F = { grupo:'', simId:'', search:'' };
+let _currentTab = null;
+let _currentScreen = null;
+
+function setFiltro(key, val) {
+  F[key] = val;
+  rerender();
+}
+
+function rerender() {
+  if(!_currentTab || !_currentScreen) return;
+  if(_currentScreen === 'admin')   renderAdmin(_currentTab);
+  if(_currentScreen === 'docente') renderDocente(_currentTab);
+  if(_currentScreen === 'est')     renderEst(_currentTab);
+}
+
+// ── Charts activos (para destruir antes de redibujar) ──
+const CHARTS = {};
+function destroyChart(id) {
+  if(CHARTS[id]) { CHARTS[id].destroy(); delete CHARTS[id]; }
+}
+
+// ══════════════════════════════════════════════════════
+// DATOS
+// ══════════════════════════════════════════════════════
+async function loadAll() {
+  const [r1,r2,r3,r4,r5,r6,r7] = await Promise.all([
+    db.from('grupos').select('*').order('nombre'),
+    db.from('students').select('*').order('nombre'),
+    db.from('simulacros').select('*').order('numero'),
+    db.from('notas').select('*'),
+    db.from('documentos').select('*').order('creado_en',{ascending:false}),
+    db.from('teachers').select('*,teacher_grupos(grupo_id)').order('nombre'),
+    db.from('config').select('*')
+  ]);
+  APP.grupos    = r1.data||[];
+  APP.students  = r2.data||[];
+  APP.simulacros= r3.data||[];
+  APP.docs      = r5.data||[];
+  APP.docentes  = (r6.data||[]).map(d=>({...d, grupos:(d.teacher_grupos||[]).map(tg=>tg.grupo_id)}));
+  APP.notas = {};
+  (r4.data||[]).forEach(n=>{
+    if(!APP.notas[n.simulacro_id]) APP.notas[n.simulacro_id]={};
+    APP.notas[n.simulacro_id][n.student_id]={bio:n.bio,ing:n.ing,lec:n.lec,mat:n.mat,soc:n.soc};
+  });
+  APP.config={};
+  (r7.data||[]).forEach(c=>{ APP.config[c.clave]=c.valor; });
+}
+
+async function refresh(goTo) {
+  await loadAll();
+  if(goTo) { _currentTab=goTo; rerender(); }
+  else rerender();
+  toast('Datos actualizados');
+}
+
+// ══════════════════════════════════════════════════════
+// CÁLCULO ICFES
+// Fórmula: (LC×3 + MAT×3 + SOC×3 + NAT×3 + ING×1) / 13 × 5
+// ══════════════════════════════════════════════════════
+function icfes(n) {
+  if(!n) return null;
+  const areas = [{k:'lec',p:3},{k:'mat',p:3},{k:'soc',p:3},{k:'bio',p:3},{k:'ing',p:1}];
+  let total=0, peso=0;
+  areas.forEach(a=>{ if(n[a.k]!=null){ total+=Number(n[a.k])*a.p; peso+=a.p; }});
+  if(!peso) return null;
+  return Math.round((total/13)*5);
+}
+
+function nivel(pts) {
+  if(pts==null) return {lbl:'Sin datos',cls:'b-gray',color:'#94a3b8',bg:'#f1f5f9'};
+  if(pts>=400)  return {lbl:'Superior', cls:'b-sup', color:'#166534',bg:'#dcfce7'};
+  if(pts>=300)  return {lbl:'Alto',     cls:'b-alt', color:'#1d4ed8',bg:'#dbeafe'};
+  if(pts>=200)  return {lbl:'Básico',   cls:'b-bas', color:'#92400e',bg:'#fef3c7'};
+  return            {lbl:'Bajo',    cls:'b-baj', color:'#991b1b',bg:'#fee2e2'};
+}
+
+function percentil(pts, all) {
+  if(pts==null||!all.length) return null;
+  return Math.round(all.filter(p=>p<pts).length/all.length*100);
+}
+
+// ══════════════════════════════════════════════════════
+// HELPERS UI
+// ══════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const fmtDate = d => { try{ return d ? new Date(d+'T12:00:00').toLocaleDateString('es-CO',{day:'2-digit',month:'short',year:'numeric'}) : '—'; }catch(e){return d||'—';} };
+const uid = () => 's'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+function toast(msg, type) {
+  const el=$('toast'); el.textContent=msg;
+  el.className='show '+(type==='err'?'err':'ok');
+  clearTimeout(window._tt);
+  window._tt=setTimeout(()=>el.className='',3000);
+}
+
+function om(id) { $(id).classList.add('on'); }
+function cm(id) { $(id).classList.remove('on'); }
+
+function confirm2(msg, cb) {
+  $('m-confirm-msg').textContent=msg;
+  $('m-confirm-ok').onclick=()=>{ cm('m-confirm'); cb(); };
+  om('m-confirm');
+}
+
+function showScr(id) {
+  ['s-login','s-admin','s-docente','s-est'].forEach(s=>{ const el=$(s); if(el){el.style.display='none';el.classList.remove('on');} });
+  const el=$(id); if(el){el.style.display='flex';el.classList.add('on');}
+  _currentScreen = id.replace('s-','');
+}
+
+// ── Filtros ──
+function fStudents() {
+  let s = F.grupo ? APP.students.filter(x=>x.grupo_id===F.grupo) : APP.students;
+  if(F.search) { const q=F.search.toLowerCase(); s=s.filter(x=>x.nombre.toLowerCase().includes(q)||(x.cedula||'').includes(q)); }
+  return s;
+}
+function fSim() {
+  return F.simId ? APP.simulacros.find(s=>s.id===F.simId)||APP.simulacros[APP.simulacros.length-1] : APP.simulacros[APP.simulacros.length-1];
+}
+function fSims() {
+  return F.simId ? APP.simulacros.filter(s=>s.id===F.simId) : APP.simulacros;
+}
+
+// ── Barra de filtros HTML ──
+function fbar(opts, screen) {
+  let parts=[];
+  const scr=screen||_currentScreen;
+  const tab=_currentTab;
+  const onG=`setFiltro('grupo',this.value)`;
+  const onS=`setFiltro('simId',this.value)`;
+  const onSrch=`setFiltro('search',this.value)`;
+
+  if(opts.grupo!==false) {
+    parts.push(`<select onchange="${onG}">
+      <option value="">Todos los grupos</option>
+      ${APP.grupos.map(g=>`<option value="${g.id}"${F.grupo===g.id?' selected':''}>${esc(g.nombre)}</option>`).join('')}
+    </select>`);
+  }
+  if(opts.sim!==false && APP.simulacros.length>1) {
+    parts.push(`<select onchange="${onS}">
+      <option value="">Todos los simulacros</option>
+      ${APP.simulacros.map(s=>`<option value="${s.id}"${F.simId===s.id?' selected':''}>${esc(s.nombre)}</option>`).join('')}
+    </select>`);
+  }
+  if(opts.search) {
+    parts.push(`<input placeholder="🔍 Buscar estudiante..." style="width:200px" value="${esc(F.search)}" oninput="${onSrch}">`);
+  }
+  if(!parts.length) return '';
+  return `<div class="fbar">${parts.join('')}</div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// LOGIN
+// ══════════════════════════════════════════════════════
+let _loginTab='admin';
+function setLoginTab(t) {
+  _loginTab=t;
+  $('tab-admin').classList.toggle('on',t==='admin');
+  $('tab-est').classList.toggle('on',t==='est');
+  $('fadmin').style.display=t==='admin'?'':'none';
+  $('fest').style.display=t==='est'?'':'none';
+  $('l-err').style.display='none';
+}
+
+async function login() {
+  $('l-err').style.display='none';
+  if(_loginTab==='est') {
+    const ced=($('l-ced').value||'').trim();
+    const stu=APP.students.find(s=>s.cedula===ced);
+    if(!stu){$('l-err').textContent='Cédula no encontrada';$('l-err').style.display='block';return;}
+    APP.role='est'; APP.user=stu;
+    saveRem('est',ced,ced);
+    initEst(); showScr('s-est'); return;
+  }
+  const u=($('l-user').value||'').trim(), p=$('l-pass').value;
+  if(u===(APP.config.admin_user||'admin')&&p===(APP.config.admin_pass||'cajamag2026')) {
+    APP.role='admin'; APP.user={nombre:'Administrador'};
+    saveRem('admin',u,p);
+    initAdmin(); showScr('s-admin'); return;
+  }
+  const doc=APP.docentes.find(d=>d.usuario===u&&d.password===p);
+  if(doc) {
+    APP.role='docente'; APP.user=doc;
+    saveRem('admin',u,p);
+    $('d-role').textContent=esc(doc.nombre||u);
+    initDocente(); showScr('s-docente'); return;
+  }
+  $('l-err').style.display='block';
+}
+
+function saveRem(tab,u,p) {
+  if($('l-rem').checked) {
+    localStorage.setItem('cjmg_tab',tab);
+    localStorage.setItem('cjmg_u',u);
+    localStorage.setItem('cjmg_p',p);
+  }
+}
+
+function checkRem() {
+  const t=localStorage.getItem('cjmg_tab')||'admin';
+  const u=localStorage.getItem('cjmg_u');
+  const p=localStorage.getItem('cjmg_p');
+  if(!u||!p) return;
+  setLoginTab(t);
+  if(t==='est'&&$('l-ced')) $('l-ced').value=p;
+  else { if($('l-user'))$('l-user').value=u; if($('l-pass'))$('l-pass').value=p; }
+  $('l-rem').checked=true;
+}
+
+function logout() {
+  APP.role=null; APP.user=null; F.grupo=''; F.simId=''; F.search='';
+  _currentTab=null; _currentScreen=null;
+  Object.keys(CHARTS).forEach(k=>{ CHARTS[k].destroy(); delete CHARTS[k]; });
+  showScr('s-login');
+  setLoginTab('admin');
+}
+
+// ══════════════════════════════════════════════════════
+// ADMIN
+// ══════════════════════════════════════════════════════
+function initAdmin() { _currentScreen='admin'; aTab('dashboard',$('an-dashboard')); }
+
+function aTab(tab,el) {
+  document.querySelectorAll('#s-admin .ni').forEach(n=>n.classList.remove('on'));
+  if(el) el.classList.add('on');
+  _currentTab=tab;
+  renderAdmin(tab);
+}
+
+function renderAdmin(tab) {
+  const m=$('amain'); if(!m)return;
+  switch(tab) {
+    case 'dashboard':   m.innerHTML=rDashboard(); initDashboardCharts(); break;
+    case 'grupos':      m.innerHTML=rGrupos(); bindGrupos(); break;
+    case 'estudiantes': m.innerHTML=rEstudiantes(); bindEsts(); break;
+    case 'docentes':    m.innerHTML=rDocentes(); bindDocs(); break;
+    case 'simulacros':  m.innerHTML=rSimulacros(); bindSims(); break;
+    case 'notas':       m.innerHTML=rNotas(); bindNotas(); break;
+    case 'documentos':  m.innerHTML=rDocumentos(); bindDocumentos(); break;
+    case 'comparativo': m.innerHTML=rComparativo(fStudents(),fSims(),APP.notas); initCompChart(); break;
+    case 'semaforo':    m.innerHTML=rSemaforo(fStudents(),fSim(),APP.notas); initSemaforoChart(); break;
+    case 'alertas':     m.innerHTML=rAlertas(fStudents(),APP.simulacros,APP.notas); break;
+    case 'simulador':   m.innerHTML=rSimulador(); break;
+    case 'config':      m.innerHTML=rConfig(); break;
+  }
+}
+
+// ── Dashboard ──
+function rDashboard() {
+  const sims=APP.simulacros, stus=APP.students;
+  const lastSim=sims[sims.length-1];
+  const notas=lastSim?APP.notas[lastSim.id]||{}:{};
+  const allPts=stus.map(s=>icfes(notas[s.id])).filter(p=>p!=null);
+  const prom=allPts.length?Math.round(allPts.reduce((a,b)=>a+b,0)/allPts.length):null;
+  const bajos=allPts.filter(p=>p<200).length;
+  const enRiesgo=allPts.filter(p=>p>=200&&p<250).length;
+  const niv=nivel(prom);
+
+  const alertBanner = bajos>0
+    ? `<div class="alert-banner alert-crit">
+        <div><span style="font-weight:700;color:var(--red)">⚠️ ${bajos} estudiante${bajos>1?'s':''} con puntaje crítico</span>
+        ${enRiesgo>0?`<span style="margin-left:14px;color:var(--amber);font-weight:600">🟡 ${enRiesgo} en zona de riesgo</span>`:''}</div>
+        <button class="btn btn-red btn-sm" data-tab="alertas" data-nav="an-alertas" onclick="aTab(this.dataset.tab,$(this.dataset.nav))">Ver alertas →</button>
+       </div>` : '';
+
+  const porGrupo=APP.grupos.map(g=>{
+    const gs=stus.filter(s=>s.grupo_id===g.id);
+    const gp=gs.map(s=>icfes(notas[s.id])).filter(p=>p!=null);
+    const gProm=gp.length?Math.round(gp.reduce((a,b)=>a+b,0)/gp.length):null;
+    return `<div style="flex:1;min-width:110px;background:var(--graybg);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-weight:700;font-size:11px;margin-bottom:6px">${esc(g.nombre)}</div>
+      <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:900">${gProm||'—'}</div>
+      <span class="badge ${nivel(gProm).cls}" style="font-size:10px">${nivel(gProm).lbl}</span>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">${gs.length} est.</div></div>`;
+  }).join('');
+
+  return `<div class="ph">
+    <div><div class="ph-title">Dashboard</div><div class="ph-sub">${new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</div></div>
+    <div class="ph-actions">
+      <button class="btn btn-ghost btn-sm" onclick="refresh('dashboard')">↻ Actualizar</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇ Exportar</button>
+    </div></div>
+  <div class="content">
+    ${alertBanner}
+    <div class="g4" style="margin-bottom:16px">
+      <div class="scard"><div class="scard-lbl">Estudiantes</div><div class="scard-val" style="color:var(--blue2)">${stus.length}</div></div>
+      <div class="scard"><div class="scard-lbl">Grupos</div><div class="scard-val" style="color:var(--purple)">${APP.grupos.length}</div></div>
+      <div class="scard"><div class="scard-lbl">Simulacros</div><div class="scard-val" style="color:var(--green)">${sims.length}</div></div>
+      <div class="scard"><div class="scard-lbl">Docentes</div><div class="scard-val" style="color:var(--amber)">${APP.docentes.length}</div></div>
+    </div>
+    ${APP.grupos.length>1?`<div class="card" style="margin-bottom:16px"><div style="font-weight:700;font-size:13px;margin-bottom:12px">Rendimiento por grupo</div><div style="display:flex;gap:10px;flex-wrap:wrap">${porGrupo}</div></div>`:''}
+    ${lastSim?`
+    <div class="g2" style="margin-bottom:16px">
+      <div class="chart-box">
+        <div class="chart-title">Distribución por nivel — ${esc(lastSim.nombre)}</div>
+        <canvas id="chart-dist" height="200"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Promedio por área</div>
+        <canvas id="chart-areas" height="200"></canvas>
+      </div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Evolución del grupo por simulacro</div>
+      <div class="chart-sub">Promedio de puntaje ICFES</div>
+      <canvas id="chart-evol" height="120"></canvas>
+    </div>
+    `:'<div class="card" style="text-align:center;padding:40px;color:var(--text3)">Crea un simulacro para ver las gráficas</div>'}
+  </div>`;
+}
+
+function initDashboardCharts() {
+  const lastSim=APP.simulacros[APP.simulacros.length-1]; if(!lastSim) return;
+  const notas=APP.notas[lastSim.id]||{};
+  const stus=APP.students;
+
+  // Gráfica 1: Distribución por nivel (dona)
+  const buckets=[0,0,0,0]; // Bajo,Básico,Alto,Superior
+  stus.forEach(s=>{ const p=icfes(notas[s.id]); if(p!=null){if(p>=400)buckets[3]++;else if(p>=300)buckets[2]++;else if(p>=200)buckets[1]++;else buckets[0]++;} });
+  destroyChart('dist');
+  const c1=document.getElementById('chart-dist'); if(!c1)return;
+  CHARTS.dist=new Chart(c1,{
+    type:'doughnut',
+    data:{labels:['Bajo','Básico','Alto','Superior'],datasets:[{data:buckets,backgroundColor:['#fecaca','#fde68a','#bfdbfe','#bbf7d0'],borderColor:['#991b1b','#92400e','#1d4ed8','#166534'],borderWidth:2}]},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:12}}}}
+  });
+
+  // Gráfica 2: Promedio por área (barras horizontales)
+  const areas=[{k:'lec',l:'Lectura'},{k:'mat',l:'Matemáticas'},{k:'bio',l:'C. Naturales'},{k:'soc',l:'C. Sociales'},{k:'ing',l:'Inglés'}];
+  const proms=areas.map(a=>{
+    const vals=stus.map(s=>notas[s.id]?Number(notas[s.id][a.k]):null).filter(v=>v!=null);
+    return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):0;
+  });
+  destroyChart('areas');
+  const c2=document.getElementById('chart-areas'); if(!c2)return;
+  CHARTS.areas=new Chart(c2,{
+    type:'bar',
+    data:{labels:areas.map(a=>a.l),datasets:[{label:'Promedio %',data:proms,backgroundColor:['#bfdbfe','#c7d2fe','#bbf7d0','#fde68a','#fecaca'],borderRadius:6}]},
+    options:{responsive:true,indexAxis:'y',scales:{x:{max:100,grid:{color:'#f1f5f9'}}},plugins:{legend:{display:false}}}
+  });
+
+  // Gráfica 3: Evolución por simulacro (línea)
+  const evolData=APP.simulacros.map(sim=>{
+    const n=APP.notas[sim.id]||{};
+    const pts=stus.map(s=>icfes(n[s.id])).filter(p=>p!=null);
+    return pts.length?Math.round(pts.reduce((a,b)=>a+b,0)/pts.length):null;
+  });
+  destroyChart('evol');
+  const c3=document.getElementById('chart-evol'); if(!c3)return;
+  CHARTS.evol=new Chart(c3,{
+    type:'line',
+    data:{labels:APP.simulacros.map(s=>s.nombre),datasets:[{label:'Promedio ICFES',data:evolData,borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.1)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#2563eb',tension:.3,fill:true}]},
+    options:{responsive:true,scales:{y:{min:0,max:500,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}},plugins:{legend:{display:false}}}
+  });
+}
+
+// ── Comparativo ──
+function rComparativo(stus, sims, notas) {
+  if(!sims.length) return `<div class="ph"><div><div class="ph-title">Comparativo</div></div></div>${fbar({})}<div class="content"><div class="card" style="text-align:center;padding:40px;color:var(--text3)">Sin simulacros disponibles</div></div>`;
+
+  const thead=`<tr><th>Estudiante</th>${sims.map(s=>`<th style="text-align:center">${esc(s.nombre)}</th>`).join('')}${sims.length>1?'<th style="text-align:center">Tendencia</th><th style="text-align:center">Mejor</th>':''}</tr>`;
+  const rows=stus.map(s=>{
+    const pts=sims.map(sim=>icfes((notas[sim.id]||{})[s.id]||{}));
+    const valid=pts.filter(p=>p!=null);
+    const mejor=valid.length?Math.max(...valid):null;
+    let trend='—';
+    if(pts.length>=2){const l=pts[pts.length-1],p=pts[pts.length-2];if(l!=null&&p!=null){const d=l-p;trend=d>0?`<span style="color:var(--green);font-weight:700">↑+${d}</span>`:d<0?`<span style="color:var(--red);font-weight:700">↓${d}</span>`:'<span style="color:var(--text3)">=</span>';}}
+    return `<tr><td style="font-weight:700;font-size:12px">${esc(s.nombre)}</td>${pts.map(p=>{const n=nivel(p);return `<td style="text-align:center"><span class="badge ${n.cls}">${p!=null?p:'—'}</span></td>`;}).join('')}${sims.length>1?`<td style="text-align:center">${trend}</td><td style="text-align:center"><span class="badge ${nivel(mejor).cls}">${mejor||'—'}</span></td>`:''}</tr>`;
+  }).join('');
+
+  return `<div class="ph">
+    <div><div class="ph-title">Comparativo</div><div class="ph-sub">${stus.length} estudiantes · ${sims.length} simulacro${sims.length>1?'s':''}</div></div>
+    <div class="ph-actions"><button class="btn btn-ghost btn-sm" onclick="pdfComp()">📄 PDF</button></div>
+  </div>
+  ${fbar({})}
+  <div class="content">
+    <div class="chart-box" style="margin-bottom:16px">
+      <div class="chart-title">Promedio del grupo por simulacro</div>
+      <canvas id="chart-comp" height="100"></canvas>
+    </div>
+    <div class="card tw"><table class="tbl"><thead>${thead}</thead><tbody>${rows}</tbody></table></div>
+  </div>`;
+}
+
+function initCompChart() {
+  const sims=fSims(); const stus=fStudents();
+  if(!sims.length) return;
+  const labels=sims.map(s=>s.nombre);
+  const data=sims.map(sim=>{
+    const pts=stus.map(s=>icfes((APP.notas[sim.id]||{})[s.id]||{})).filter(p=>p!=null);
+    return pts.length?Math.round(pts.reduce((a,b)=>a+b,0)/pts.length):null;
+  });
+  destroyChart('comp');
+  const c=document.getElementById('chart-comp'); if(!c)return;
+  CHARTS.comp=new Chart(c,{
+    type:'bar',
+    data:{labels,datasets:[{label:'Promedio ICFES',data,backgroundColor:data.map(p=>nivel(p).bg),borderColor:data.map(p=>nivel(p).color),borderWidth:2,borderRadius:8}]},
+    options:{responsive:true,scales:{y:{min:0,max:500,grid:{color:'#f1f5f9'}},x:{grid:{display:false}}},plugins:{legend:{display:false}}}
+  });
+}
+
+// ── Semáforo ──
+function rSemaforo(stus, sim, notas) {
+  if(!sim) return `<div class="ph"><div><div class="ph-title">Semáforo</div></div></div>${fbar({})}<div class="content"><div class="card" style="text-align:center;padding:40px;color:var(--text3)">Sin simulacros</div></div>`;
+  const n=notas[sim.id]||{};
+  const allPts=stus.map(s=>icfes(n[s.id]||{})).filter(p=>p!=null);
+  const buck={sup:0,alt:0,bas:0,baj:0};
+  const rows=stus.map(s=>{
+    const pts=icfes(n[s.id]||{}); const niv=nivel(pts);
+    const perc=percentil(pts,allPts);
+    if(pts!=null){if(pts>=400)buck.sup++;else if(pts>=300)buck.alt++;else if(pts>=200)buck.bas++;else buck.baj++;}
+    const pct=pts!=null?Math.round(pts/500*100):0;
+    return `<tr>
+      <td style="font-weight:700;font-size:12px">${esc(s.nombre)}</td>
+      <td style="text-align:center"><span class="badge ${niv.cls}">${niv.lbl}</span></td>
+      <td style="text-align:center;font-weight:800">${pts!=null?pts+' pts':'—'}</td>
+      <td style="min-width:100px"><div class="bar"><div class="bar-fill" style="width:${pct}%;background:${niv.color}"></div></div></td>
+      <td style="text-align:center;font-size:11px;color:var(--text3)">${perc!=null?'P'+perc:'—'}</td>
+    </tr>`;
+  }).join('');
+  const tot=stus.length||1;
+  const summary=`<div class="g4" style="margin-bottom:16px">
+    ${[['Superior',buck.sup,'var(--green)','var(--greenbg)'],['Alto',buck.alt,'var(--blue2)','var(--bluebg)'],['Básico',buck.bas,'var(--amber)','var(--amberbg)'],['Bajo',buck.baj,'var(--red)','var(--redbg)']].map(([lbl,cnt,col,bg])=>`
+    <div class="scard" style="background:${bg};border:none">
+      <div class="scard-lbl">${lbl}</div>
+      <div class="scard-val" style="color:${col}">${cnt}</div>
+      <div class="scard-sub">${Math.round(cnt/tot*100)}%</div>
+      <div style="height:3px;background:${col};border-radius:2px;margin-top:6px;width:${Math.round(cnt/tot*100)}%"></div>
+    </div>`).join('')}
+  </div>`;
+
+  return `<div class="ph">
+    <div><div class="ph-title">Semáforo de Riesgo</div><div class="ph-sub">${esc(sim.nombre)} · ${stus.length} estudiantes</div></div>
+    <div class="ph-actions"><button class="btn btn-ghost btn-sm" onclick="pdfSem()">📄 PDF</button></div>
+  </div>
+  ${fbar({})}
+  <div class="content">
+    ${summary}
+    <div class="g2" style="margin-bottom:16px">
+      <div class="chart-box">
+        <div class="chart-title">Distribución por nivel</div>
+        <canvas id="chart-sem-dist" height="180"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Puntajes — histograma</div>
+        <canvas id="chart-sem-hist" height="180"></canvas>
+      </div>
+    </div>
+    <div class="card tw"><table class="tbl">
+      <thead><tr><th>Estudiante</th><th style="text-align:center">Nivel</th><th style="text-align:center">Puntaje</th><th>Progreso</th><th style="text-align:center">Percentil</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+function initSemaforoChart() {
+  const sim=fSim(); if(!sim)return;
+  const stus=fStudents();
+  const n=APP.notas[sim.id]||{};
+  const allPts=stus.map(s=>icfes(n[s.id]||{})).filter(p=>p!=null);
+  const buck=[0,0,0,0]; allPts.forEach(p=>{if(p>=400)buck[3]++;else if(p>=300)buck[2]++;else if(p>=200)buck[1]++;else buck[0]++;});
+
+  // Dona
+  destroyChart('sem-dist');
+  const c1=document.getElementById('chart-sem-dist'); if(c1) CHARTS['sem-dist']=new Chart(c1,{
+    type:'doughnut',
+    data:{labels:['Bajo','Básico','Alto','Superior'],datasets:[{data:buck,backgroundColor:['#fecaca','#fde68a','#bfdbfe','#bbf7d0'],borderColor:['#991b1b','#92400e','#1d4ed8','#166534'],borderWidth:2}]},
+    options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
+  });
+
+  // Histograma de puntajes (barras por rango)
+  const rangos=['0-100','101-200','201-300','301-400','401-500'];
+  const counts=[0,0,0,0,0];
+  allPts.forEach(p=>{const i=Math.min(Math.floor(p/100),4); counts[i]++;});
+  destroyChart('sem-hist');
+  const c2=document.getElementById('chart-sem-hist'); if(c2) CHARTS['sem-hist']=new Chart(c2,{
+    type:'bar',
+    data:{labels:rangos,datasets:[{label:'Estudiantes',data:counts,backgroundColor:['#fecaca','#fde68a','#bfdbfe','#bfdbfe','#bbf7d0'],borderRadius:6}]},
+    options:{responsive:true,scales:{y:{ticks:{stepSize:1},grid:{color:'#f1f5f9'}},x:{grid:{display:false}}},plugins:{legend:{display:false}}}
+  });
+}
+
+// ── Alertas ──
+function rAlertas(stus, sims, notas) {
+  const simsChk=F.simId?sims.filter(s=>s.id===F.simId):sims;
+  const criticos=[], enRiesgo=[];
+  stus.forEach(s=>{ simsChk.forEach(sim=>{
+    const p=icfes((notas[sim.id]||{})[s.id]||{});
+    if(p!=null&&p<200) criticos.push({nombre:s.nombre,sim:sim.nombre,pts:p});
+    else if(p!=null&&p<250) enRiesgo.push({nombre:s.nombre,sim:sim.nombre,pts:p});
+  });});
+
+  let body='';
+  if(!criticos.length&&!enRiesgo.length) {
+    body=`<div class="alert-banner alert-ok"><span style="font-size:18px">✅</span><span style="font-weight:700;color:var(--green)">Sin alertas críticas en el período seleccionado.</span></div>`;
+  } else {
+    if(criticos.length) body+=`<div style="font-weight:700;color:var(--red);margin-bottom:8px">🔴 Críticos (< 200 pts) — ${criticos.length} caso${criticos.length>1?'s':''}</div>
+      <div class="card tw" style="margin-bottom:16px"><table class="tbl"><thead><tr><th>Estudiante</th><th>Simulacro</th><th style="text-align:center">Puntaje</th></tr></thead><tbody>
+      ${criticos.map(a=>`<tr><td style="font-weight:700">${esc(a.nombre)}</td><td>${esc(a.sim)}</td><td style="text-align:center"><span class="badge b-baj">${a.pts} pts</span></td></tr>`).join('')}
+      </tbody></table></div>`;
+    if(enRiesgo.length) body+=`<div style="font-weight:700;color:var(--amber);margin-bottom:8px">🟡 En riesgo (200-250 pts) — ${enRiesgo.length} caso${enRiesgo.length>1?'s':''}</div>
+      <div class="card tw"><table class="tbl"><thead><tr><th>Estudiante</th><th>Simulacro</th><th style="text-align:center">Puntaje</th></tr></thead><tbody>
+      ${enRiesgo.map(a=>`<tr><td style="font-weight:700">${esc(a.nombre)}</td><td>${esc(a.sim)}</td><td style="text-align:center"><span class="badge b-bas">${a.pts} pts</span></td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+  return `<div class="ph"><div><div class="ph-title">Alertas</div><div class="ph-sub">${criticos.length} críticos · ${enRiesgo.length} en riesgo</div></div></div>
+  ${fbar({})}
+  <div class="content">${body}</div>`;
+}
+
+// ── Notas ──
+function rNotas() {
+  if(!APP.simulacros.length) return `<div class="ph"><div class="ph-title">Notas</div></div><div class="content"><div class="card" style="text-align:center;padding:40px;color:var(--text3)">Crea un simulacro primero</div></div>`;
+  const sim=fSim(); const stus=fStudents();
+  const notas=APP.notas[sim.id]||{};
+  const areas=[{k:'lec',l:'Lectura'},{k:'mat',l:'Mat.'},{k:'bio',l:'C.Nat.'},{k:'soc',l:'C.Soc.'},{k:'ing',l:'Inglés'}];
+  const thead=`<tr><th>Estudiante</th>${areas.map(a=>`<th style="text-align:center">${a.l}</th>`).join('')}<th style="text-align:center">Puntaje</th></tr>`;
+  const rows=stus.map(s=>{
+    const n=notas[s.id]||{}; const pts=icfes(n); const niv=nivel(pts);
+    const inputs=areas.map(a=>{
+      const v=n[a.k]; const low=v!=null&&v<60;
+      return `<td><input type="number" min="0" max="100" step="0.1" value="${v!=null?v:''}" data-sid="${s.id}" data-sim="${sim.id}" data-field="${a.k}" onchange="saveNota(this)" style="width:58px;padding:3px 5px;border:1.5px solid ${low?'#fecaca':'var(--bdr)'};border-radius:6px;font-size:12px;text-align:center;background:${low?'#fff5f5':'#fff'}"></td>`;
+    }).join('');
+    return `<tr><td style="font-weight:700;font-size:12px">${esc(s.nombre)}</td>${inputs}<td style="text-align:center" id="pts-${s.id}"><span class="badge ${niv.cls}">${pts!=null?pts+'pts':'—'}</span></td></tr>`;
+  }).join('');
+  return `<div class="ph"><div><div class="ph-title">Notas</div><div class="ph-sub">${esc(sim.nombre)} · ${stus.length} estudiantes</div></div></div>
+  ${fbar({})}
+  <div class="content"><div class="card tw"><table class="tbl"><thead>${thead}</thead><tbody>${rows}</tbody></table></div></div>`;
+}
+
+function bindNotas() {}
+
+async function saveNota(inp) {
+  const val=inp.value.trim()===''?null:parseFloat(inp.value);
+  const low=val!=null&&val<60;
+  inp.style.borderColor=low?'#fecaca':'var(--bdr)';
+  inp.style.background=low?'#fff5f5':'#fff';
+  const sid=inp.dataset.sid, simId=inp.dataset.sim, field=inp.dataset.field;
+  if(!APP.notas[simId]) APP.notas[simId]={};
+  if(!APP.notas[simId][sid]) APP.notas[simId][sid]={};
+  APP.notas[simId][sid][field]=val;
+  const n=APP.notas[simId][sid]; const pts=icfes(n); const niv=nivel(pts);
+  const el=$('pts-'+sid); if(el) el.innerHTML=`<span class="badge ${niv.cls}">${pts!=null?pts+'pts':'—'}</span>`;
+  await db.from('notas').upsert({student_id:sid,simulacro_id:simId,bio:n.bio!=null?Number(n.bio):null,ing:n.ing!=null?Number(n.ing):null,lec:n.lec!=null?Number(n.lec):null,mat:n.mat!=null?Number(n.mat):null,soc:n.soc!=null?Number(n.soc):null,actualizado_en:new Date().toISOString()},{onConflict:'student_id,simulacro_id'});
+}
+
+// ── Gestión Grupos ──
+function rGrupos() {
+  const rows=APP.grupos.map(g=>{
+    const cnt=APP.students.filter(s=>s.grupo_id===g.id).length;
+    return `<tr><td style="font-weight:700">${esc(g.nombre)}</td><td>${esc(g.grado||'—')}</td><td>${cnt} estudiantes</td>
+    <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" data-id="${g.id}" data-action="edit-g">Editar</button><button class="btn btn-red btn-sm" data-id="${g.id}" data-action="del-g">Borrar</button></div></td></tr>`;
+  }).join('');
+  return `<div class="ph"><div><div class="ph-title">Grupos</div></div><button class="btn btn-blue" id="btn-ng">+ Nuevo Grupo</button></div>
+  <div class="content"><div class="card tw"><table class="tbl"><thead><tr><th>Nombre</th><th>Grado</th><th>Estudiantes</th><th>Acciones</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">Sin grupos</td></tr>'}</tbody></table></div></div>`;
+}
+function bindGrupos() {
+  $('btn-ng').onclick=()=>openGrupo(null);
+  document.querySelectorAll('[data-action="edit-g"]').forEach(b=>b.onclick=()=>openGrupo(b.dataset.id));
+  document.querySelectorAll('[data-action="del-g"]').forEach(b=>b.onclick=()=>confirm2('¿Eliminar este grupo?',async()=>{ await db.from('grupos').delete().eq('id',b.dataset.id); await refresh('grupos'); $('an-grupos').click(); }));
+}
+function openGrupo(id) {
+  const g=id?APP.grupos.find(x=>x.id===id):null;
+  $('m-grupo-t').textContent=g?'Editar Grupo':'Nuevo Grupo';
+  $('mg-nombre').value=g?g.nombre:''; $('mg-grado').value=g?g.grado||'':'';
+  $('m-grupo').dataset.eid=id||''; om('m-grupo');
+}
+async function saveGrupo() {
+  const nombre=$('mg-nombre').value.trim(),grado=$('mg-grado').value.trim();
+  if(!nombre){toast('Escribe el nombre','err');return;}
+  const id=$('m-grupo').dataset.eid;
+  if(id) await db.from('grupos').update({nombre,grado}).eq('id',id);
+  else await db.from('grupos').insert({nombre,grado});
+  toast(id?'Grupo actualizado':'Grupo creado'); cm('m-grupo'); await refresh('grupos'); $('an-grupos').click();
+}
+
+// ── Gestión Estudiantes ──
+function rEstudiantes() {
+  const stus=fStudents();
+  return `<div class="ph"><div><div class="ph-title">Estudiantes</div><div class="ph-sub">${stus.length} de ${APP.students.length}</div></div><button class="btn btn-blue" id="btn-ne">+ Nuevo Estudiante</button></div>
+  ${fbar({sim:false,search:true})}
+  <div class="content"><div class="card tw"><table class="tbl"><thead><tr><th>Nombre</th><th>Cédula</th><th>Grado</th><th>Grupo</th><th>Acciones</th></tr></thead><tbody>
+  ${stus.map(s=>{const g=APP.grupos.find(x=>x.id===s.grupo_id);return `<tr><td style="font-weight:700">${esc(s.nombre)}</td><td style="color:var(--text3)">${esc(s.cedula||'—')}</td><td>${esc(s.grado||'—')}</td><td><span class="badge b-alt">${esc(g?g.nombre:'Sin grupo')}</span></td><td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" data-id="${s.id}" data-action="edit-e">Editar</button><button class="btn btn-red btn-sm" data-id="${s.id}" data-action="del-e">Borrar</button></div></td></tr>`;}).join('')||'<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Sin resultados</td></tr>'}
+  </tbody></table></div></div>`;
+}
+function bindEsts() {
+  $('btn-ne').onclick=()=>openEst(null);
+  document.querySelectorAll('[data-action="edit-e"]').forEach(b=>b.onclick=()=>openEst(b.dataset.id));
+  document.querySelectorAll('[data-action="del-e"]').forEach(b=>b.onclick=()=>confirm2('¿Eliminar estudiante?',async()=>{ await db.from('students').delete().eq('id',b.dataset.id); await refresh('estudiantes'); $('an-estudiantes').click(); }));
+}
+function openEst(id) {
+  const s=id?APP.students.find(x=>x.id===id):null;
+  $('m-est-t').textContent=s?'Editar Estudiante':'Nuevo Estudiante';
+  $('me-nombre').value=s?s.nombre:''; $('me-cedula').value=s?s.cedula||'':''; $('me-grado').value=s?s.grado||'':'';
+  const sel=$('me-grupo'); sel.innerHTML='<option value="">Seleccionar grupo</option>'+APP.grupos.map(g=>`<option value="${g.id}"${s&&s.grupo_id===g.id?' selected':''}>${esc(g.nombre)}</option>`).join('');
+  $('m-est').dataset.eid=id||''; om('m-est');
+}
+async function saveEst() {
+  const nombre=$('me-nombre').value.trim(),cedula=$('me-cedula').value.trim(),grado=$('me-grado').value.trim(),grupo_id=$('me-grupo').value;
+  if(!nombre){toast('Escribe el nombre','err');return;}
+  const g=APP.grupos.find(x=>x.id===grupo_id);
+  const data={nombre,cedula,grado,grupo_id:grupo_id||null,grupo_nombre:g?g.nombre:''};
+  const id=$('m-est').dataset.eid;
+  if(id) await db.from('students').update(data).eq('id',id);
+  else { data.id='s'+Date.now(); await db.from('students').insert(data); }
+  toast(id?'Estudiante actualizado':'Estudiante creado'); cm('m-est'); await refresh('estudiantes'); $('an-estudiantes').click();
+}
+
+// ── Docentes ──
+function rDocentes() {
+  const rows=APP.docentes.map(d=>{
+    const gn=(d.grupos||[]).map(gid=>{const g=APP.grupos.find(x=>x.id===gid);return g?g.nombre:gid;}).join(', ');
+    return `<tr><td style="font-weight:700">${esc(d.nombre)}</td><td>${esc(d.usuario)}</td><td>${esc(gn||'Sin grupos')}</td>
+    <td><div style="display:flex;gap:6px"><button class="btn btn-ghost btn-sm" data-id="${d.id}" data-action="edit-d">Editar</button><button class="btn btn-red btn-sm" data-id="${d.id}" data-action="del-d">Borrar</button></div></td></tr>`;
+  }).join('');
+  return `<div class="ph"><div><div class="ph-title">Docentes</div></div><button class="btn btn-blue" id="btn-nd">+ Nuevo Docente</button></div>
+  <div class="content"><div class="card tw"><table class="tbl"><thead><tr><th>Nombre</th><th>Usuario</th><th>Grupos</th><th>Acciones</th></tr></thead><tbody>${rows||'<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text3)">Sin docentes</td></tr>'}</tbody></table></div></div>`;
+}
+function bindDocs() {
+  $('btn-nd').onclick=()=>openDocente(null);
+  document.querySelectorAll('[data-action="edit-d"]').forEach(b=>b.onclick=()=>openDocente(b.dataset.id));
+  document.querySelectorAll('[data-action="del-d"]').forEach(b=>b.onclick=()=>confirm2('¿Eliminar docente?',async()=>{ await db.from('teachers').delete().eq('id',b.dataset.id); await refresh('docentes'); $('an-docentes').click(); }));
+}
+function openDocente(id) {
+  const d=id?APP.docentes.find(x=>x.id===id):null;
+  $('m-doc-t').textContent=d?'Editar Docente':'Nuevo Docente';
+  $('md-nombre').value=d?d.nombre:''; $('md-usuario').value=d?d.usuario:''; $('md-pass').value='';
+  $('md-pass').placeholder=d?'Dejar vacío para no cambiar':'Contraseña';
+  $('md-grupos').innerHTML=APP.grupos.map(g=>`<label style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;cursor:pointer"><input type="checkbox" value="${g.id}"${d&&d.grupos&&d.grupos.includes(g.id)?' checked':''} class="dg-chk" style="accent-color:var(--blue2);width:14px;height:14px"> ${esc(g.nombre)}</label>`).join('')||'<p style="font-size:12px;color:var(--text3)">Crea grupos primero</p>';
+  $('m-doc').dataset.eid=id||''; om('m-doc');
+}
+async function saveDoc() {
+  const nombre=$('md-nombre').value.trim(),usuario=$('md-usuario').value.trim(),pass=$('md-pass').value;
+  const grupos=[...document.querySelectorAll('.dg-chk:checked')].map(c=>c.value);
+  if(!nombre||!usuario){toast('Nombre y usuario obligatorios','err');return;}
+  const id=$('m-doc').dataset.eid;
+  let tid;
+  if(id) {
+    const upd={nombre,usuario}; if(pass)upd.password=pass;
+    await db.from('teachers').update(upd).eq('id',id); tid=id; toast('Docente actualizado');
+  } else {
+    if(!pass){toast('La contraseña es obligatoria','err');return;}
+    if(APP.docentes.find(d=>d.usuario===usuario)){toast('Usuario ya existe','err');return;}
+    const {data:ins}=await db.from('teachers').insert({nombre,usuario,password:pass}).select();
+    tid=ins&&ins[0]?ins[0].id:null; toast('Docente creado');
+  }
+  if(tid){
+    await db.from('teacher_grupos').delete().eq('teacher_id',tid);
+    if(grupos.length) await db.from('teacher_grupos').insert(grupos.map(gid=>({teacher_id:tid,grupo_id:gid})));
+  }
+  cm('m-doc'); await refresh('docentes'); $('an-docentes').click();
+}
+
+// ── Simulacros ──
+function rSimulacros() {
+  const rows=APP.simulacros.map(s=>`<tr><td style="font-weight:700">${esc(s.nombre)}</td><td>${fmtDate(s.fecha)}</td><td>${(s.q_bio||0)+(s.q_ing||0)+(s.q_lec||0)+(s.q_mat||0)+(s.q_soc||0)} preg.</td><td>${esc(s.descripcion||'—')}</td><td><button class="btn btn-red btn-sm" data-id="${s.id}" data-action="del-s">Borrar</button></td></tr>`).join('');
+  return `<div class="ph"><div><div class="ph-title">Simulacros ICFES</div></div><button class="btn btn-blue" id="btn-ns">+ Nuevo Simulacro</button></div>
+  <div class="content"><div class="card tw"><table class="tbl"><thead><tr><th>Nombre</th><th>Fecha</th><th>Preguntas</th><th>Descripción</th><th>Acción</th></tr></thead><tbody>${rows||'<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Sin simulacros</td></tr>'}</tbody></table></div></div>`;
+}
+function bindSims() {
+  $('btn-ns').onclick=()=>om('m-sim');
+  document.querySelectorAll('[data-action="del-s"]').forEach(b=>b.onclick=()=>confirm2('¿Eliminar simulacro y todas sus notas?',async()=>{ await db.from('simulacros').delete().eq('id',b.dataset.id); await refresh('simulacros'); $('an-simulacros').click(); }));
+}
+async function saveSim() {
+  const nombre=$('ms-nombre').value.trim(), fecha=$('ms-fecha').value;
+  if(!nombre){toast('Escribe el nombre','err');return;}
+  await db.from('simulacros').insert({id:'sim'+Date.now(),numero:APP.simulacros.length+1,nombre,fecha:fecha||null,descripcion:$('ms-desc').value.trim(),q_lec:parseInt($('ms-lec').value)||0,q_mat:parseInt($('ms-mat').value)||0,q_bio:parseInt($('ms-bio').value)||0,q_soc:parseInt($('ms-soc').value)||0,q_ing:parseInt($('ms-ing').value)||0});
+  toast('Simulacro creado'); cm('m-sim'); await refresh('simulacros'); $('an-simulacros').click();
+}
+
+// ── Documentos ──
+function rDocumentos() {
+  const stuIds=F.grupo?APP.students.filter(s=>s.grupo_id===F.grupo).map(s=>s.id):null;
+  const docs=stuIds?APP.docs.filter(d=>stuIds.includes(d.student_id)):APP.docs;
+  const rows=docs.map(d=>{
+    const stu=APP.students.find(s=>s.id===d.student_id);
+    const g=stu?APP.grupos.find(x=>x.id===stu.grupo_id):null;
+    return `<tr><td style="font-weight:700">${esc(d.nombre)}</td><td><span class="badge b-purple">${esc(d.tipo||'otro')}</span></td><td style="font-size:12px">${esc(stu?stu.nombre:'—')}</td><td style="font-size:11px;color:var(--text3)">${esc(g?g.nombre:'—')}</td><td>${fmtDate(d.fecha)}</td>
+    <td><div style="display:flex;gap:6px"><a class="btn btn-green btn-sm" href="${esc(d.url||'#')}" target="_blank">Ver</a><button class="btn btn-red btn-sm" data-id="${d.id}" data-action="del-doc">Borrar</button></div></td></tr>`;
+  }).join('');
+  return `<div class="ph"><div><div class="ph-title">Documentos</div><div class="ph-sub">${docs.length} documentos</div></div><button class="btn btn-blue" id="btn-ndoc">+ Agregar</button></div>
+  ${fbar({sim:false})}
+  <div class="content"><div class="card tw"><table class="tbl"><thead><tr><th>Documento</th><th>Tipo</th><th>Estudiante</th><th>Grupo</th><th>Fecha</th><th>Acciones</th></tr></thead><tbody>${rows||'<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">Sin documentos</td></tr>'}</tbody></table></div></div>`;
+}
+function bindDocumentos() {
+  $('btn-ndoc').onclick=()=>{
+    const sel=$('mdoc-est'); sel.innerHTML='<option value="">Seleccionar...</option>'+APP.students.map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+    om('m-documento');
+  };
+  document.querySelectorAll('[data-action="del-doc"]').forEach(b=>b.onclick=()=>confirm2('¿Eliminar documento?',async()=>{ await db.from('documentos').delete().eq('id',b.dataset.id); await refresh('documentos'); $('an-documentos').click(); }));
+}
+async function saveDocumento() {
+  const stuId=$('mdoc-est').value, nombre=$('mdoc-nombre').value.trim(), url=$('mdoc-url').value.trim(), tipo=$('mdoc-tipo').value, obs=$('mdoc-obs').value.trim();
+  if(!nombre||!url){toast('Nombre y URL obligatorios','err');return;}
+  await db.from('documentos').insert({nombre,tipo,url,embed_url:url.replace('/view','/preview'),student_id:stuId||null,observacion:obs,fecha:new Date().toISOString().slice(0,10)});
+  toast('Documento guardado'); cm('m-documento'); await refresh('documentos'); $('an-documentos').click();
+}
+
+// ── Config ──
+function rConfig() {
+  return `<div class="ph"><div class="ph-title">Configuración</div></div>
+  <div class="content">
+    <div class="card" style="max-width:460px;margin-bottom:16px">
+      <div style="font-weight:700;margin-bottom:14px">Credenciales de administrador</div>
+      <div class="lf"><label class="lbl">Usuario admin</label><input class="inp" id="cfg-user" value="${esc(APP.config.admin_user||'admin')}"></div>
+      <div class="lf"><label class="lbl">Nueva contraseña</label><input class="inp" type="password" id="cfg-pass" placeholder="Dejar vacío para no cambiar"></div>
+      <button class="btn btn-blue" onclick="saveConfig()">Guardar</button>
+    </div>
+    <div class="card" style="max-width:460px;margin-bottom:16px">
+      <div style="font-weight:700;margin-bottom:8px">Respaldo de datos</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Exporta todos los datos como archivo JSON de seguridad.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" onclick="exportJSON()">⬇ Exportar JSON</button>
+        <button class="btn btn-ghost" onclick="$('imp-file').click()">⬆ Importar JSON</button>
+        <input type="file" id="imp-file" accept=".json" style="display:none" onchange="importJSON(this)">
+      </div>
+    </div>
+    <div class="card" style="max-width:460px;background:var(--redbg);border-color:#fecaca">
+      <div style="font-weight:700;margin-bottom:8px;color:var(--red)">Zona de peligro</div>
+      <div style="font-size:12px;color:var(--red);margin-bottom:12px">Estas acciones son irreversibles.</div>
+      <button class="btn btn-red btn-sm" onclick="confirm2('¿Limpiar todos los datos del localStorage?',()=>{localStorage.clear();toast('Cache limpiado');})">Limpiar cache local</button>
+    </div>
+  </div>`;
+}
+async function saveConfig() {
+  const u=$('cfg-user').value.trim(), p=$('cfg-pass').value;
+  if(u) await db.from('config').upsert({clave:'admin_user',valor:u},{onConflict:'clave'});
+  if(p) await db.from('config').upsert({clave:'admin_pass',valor:p},{onConflict:'clave'});
+  toast('Configuración guardada'); await loadAll();
+}
+
+// ── Simulador ──
+function rSimulador() {
+  const areas=[{k:'lec',l:'Lectura crítica',p:3},{k:'mat',l:'Matemáticas',p:3},{k:'soc',l:'C. Sociales',p:3},{k:'bio',l:'C. Naturales',p:3},{k:'ing',l:'Inglés',p:1}];
+  return `<div class="ph"><div><div class="ph-title">Simulador de Puntaje ICFES</div><div class="ph-sub">Mueve los controles para calcular tu puntaje estimado</div></div></div>
+  <div class="content"><div class="g2">
+    <div class="card">
+      ${areas.map(a=>`<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <label style="width:150px;font-size:13px;font-weight:600">${a.l} <span style="font-size:9px;color:var(--text3)">×${a.p}</span></label>
+        <input type="range" min="0" max="100" value="50" id="sl-${a.k}" oninput="calcSim()" style="flex:1;accent-color:var(--blue2)">
+        <span id="sv-${a.k}" style="width:34px;text-align:right;font-weight:700;color:var(--blue2)">50</span>
+      </div>`).join('')}
+      <div style="font-size:10px;color:var(--text3);margin-top:8px">Fórmula ICFES: (LC×3+MAT×3+SOC×3+NAT×3+ING×1) ÷ 13 × 5</div>
+    </div>
+    <div>
+      <div style="background:var(--bluebg);border-radius:14px;padding:28px;text-align:center;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">PUNTAJE ESTIMADO</div>
+        <div id="sim-pts" style="font-family:'Playfair Display',serif;font-size:60px;font-weight:900;color:var(--blue2)">250</div>
+        <div id="sim-lvl" style="font-size:14px;font-weight:700;margin-top:4px">Básico</div>
+        <div id="sim-bar" style="margin-top:12px;height:8px;background:rgba(0,0,0,.1);border-radius:4px;overflow:hidden"><div id="sim-bar-fill" style="height:100%;border-radius:4px;background:var(--blue2);transition:width .3s;width:50%"></div></div>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Distribución por área</div>
+        <canvas id="chart-sim" height="200"></canvas>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+let _simChart=null;
+function calcSim() {
+  const areas=[{k:'lec',p:3},{k:'mat',p:3},{k:'soc',p:3},{k:'bio',p:3},{k:'ing',p:1}];
+  let total=0,pTotal=0;
+  const vals=[];
+  areas.forEach(a=>{
+    const inp=document.getElementById('sl-'+a.k); if(!inp)return;
+    const v=parseFloat(inp.value)||0;
+    const lbl=document.getElementById('sv-'+a.k); if(lbl)lbl.textContent=v;
+    total+=v*a.p; pTotal+=a.p; vals.push(v);
+  });
+  const pts=Math.round((total/13)*5);
+  const el=$('sim-pts'); if(el)el.textContent=pts;
+  const niv=nivel(pts);
+  const lv=$('sim-lvl'); if(lv){lv.textContent=niv.lbl;lv.style.color=niv.color;}
+  const bf=$('sim-bar-fill'); if(bf){bf.style.width=Math.round(pts/500*100)+'%';bf.style.background=niv.color;}
+  // Actualizar chart radial
+  const c=document.getElementById('chart-sim');
+  if(c){
+    if(_simChart){_simChart.data.datasets[0].data=vals;_simChart.update();}
+    else {
+      _simChart=new Chart(c,{type:'radar',data:{labels:['Lectura','Matemáticas','C.Sociales','C.Naturales','Inglés'],datasets:[{label:'Puntaje',data:vals,backgroundColor:'rgba(37,99,235,.15)',borderColor:'#2563eb',borderWidth:2,pointBackgroundColor:'#2563eb'}]},options:{responsive:true,scales:{r:{min:0,max:100,ticks:{stepSize:20},grid:{color:'#e2e8f0'}}},plugins:{legend:{display:false}}}});
+      CHARTS['sim-radar']=_simChart;
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// DOCENTE
+// ══════════════════════════════════════════════════════
+function initDocente() {
+  _currentScreen='docente';
+  dTab('comparativo',$('dn-comparativo'));
+}
+function dTab(tab,el) {
+  document.querySelectorAll('#s-docente .ni').forEach(n=>n.classList.remove('on'));
+  if(el)el.classList.add('on'); _currentTab=tab; renderDocente(tab);
+}
+function renderDocente(tab) {
+  const m=$('dmain'); if(!m)return;
+  const myGrupos=APP.user.grupos||[];
+  const baseStus=myGrupos.length?APP.students.filter(s=>myGrupos.includes(s.grupo_id)):APP.students;
+  const stus=F.grupo&&myGrupos.includes(F.grupo)?baseStus.filter(s=>s.grupo_id===F.grupo):baseStus;
+  switch(tab){
+    case 'comparativo': m.innerHTML=rComparativo(stus,fSims(),APP.notas); initCompChart(); break;
+    case 'semaforo':    m.innerHTML=rSemaforo(stus,fSim(),APP.notas); initSemaforoChart(); break;
+    case 'alertas':     m.innerHTML=rAlertas(stus,APP.simulacros,APP.notas); break;
+    case 'notas':       m.innerHTML=rDocenteNotas(stus); break;
+    case 'documentos':  m.innerHTML=rDocenteDocs(stus); bindDocenteDocs(stus); break;
+    case 'simulador':   m.innerHTML=rSimulador(); break;
+  }
+}
+function rDocenteNotas(stus) {
+  if(!APP.simulacros.length) return `<div class="ph"><div class="ph-title">Notas</div></div><div class="content"><div class="card" style="text-align:center;padding:40px;color:var(--text3)">Sin simulacros</div></div>`;
+  const sim=fSim(); const notas=APP.notas[sim.id]||{};
+  const areas=[{k:'lec',l:'Lectura'},{k:'mat',l:'Mat.'},{k:'bio',l:'C.Nat.'},{k:'soc',l:'C.Soc.'},{k:'ing',l:'Inglés'}];
+  const thead=`<tr><th>Estudiante</th>${areas.map(a=>`<th style="text-align:center">${a.l}</th>`).join('')}<th style="text-align:center">Pts</th></tr>`;
+  const rows=stus.map(s=>{
+    const n=notas[s.id]||{}; const pts=icfes(n); const niv=nivel(pts);
+    const inputs=areas.map(a=>{ const v=n[a.k]; const low=v!=null&&v<60;
+      return `<td><input type="number" min="0" max="100" step="0.1" value="${v!=null?v:''}" data-sid="${s.id}" data-sim="${sim.id}" data-field="${a.k}" onchange="saveNota(this)" style="width:55px;padding:3px 5px;border:1.5px solid ${low?'#fecaca':'var(--bdr)'};border-radius:5px;font-size:11px;text-align:center;background:${low?'#fff5f5':'#fff'}"></td>`;}).join('');
+    return `<tr><td style="font-weight:700;font-size:11px">${esc(s.nombre)}</td>${inputs}<td style="text-align:center" id="pts-${s.id}"><span class="badge ${niv.cls}">${pts!=null?pts:'—'}</span></td></tr>`;
+  }).join('');
+  return `<div class="ph"><div><div class="ph-title">Notas</div><div class="ph-sub">${esc(sim.nombre)}</div></div></div>
+  ${fbar({})}
+  <div class="content"><div class="card tw"><table class="tbl"><thead>${thead}</thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function rDocenteDocs(stus) {
+  const ids=stus.map(s=>s.id);
+  const docs=APP.docs.filter(d=>ids.includes(d.student_id));
+  const stuOpts=stus.map(s=>`<option value="${s.id}">${esc(s.nombre)}</option>`).join('');
+  const rows=docs.map(d=>{const stu=stus.find(s=>s.id===d.student_id);return `<tr><td style="font-weight:700;font-size:12px">${esc(stu?stu.nombre:'—')}</td><td><span class="badge b-purple">${esc(d.tipo||'otro')}</span></td><td>${esc(d.nombre)}</td><td style="font-size:11px;color:var(--text3)">${esc(d.observacion||'')}</td><td><a class="btn btn-green btn-sm" href="${esc(d.url||'#')}" target="_blank">Ver</a></td></tr>`;}).join('');
+  return `<div class="ph"><div><div class="ph-title">Documentos</div></div><button class="btn btn-blue" id="btn-ddoc">+ Agregar</button></div>
+  <div class="content"><div class="card tw" style="margin-bottom:14px"><table class="tbl"><thead><tr><th>Estudiante</th><th>Tipo</th><th>Documento</th><th>Obs.</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Sin documentos</td></tr>'}</tbody></table></div></div>
+  <div class="mov" id="m-ddoc"><div class="mbox"><div class="mhdr"><span class="mtitle">Agregar Documento</span><button class="mclose" onclick="cm('m-ddoc')">✕</button></div>
+  <div class="mbody"><div class="lf"><label class="lbl">Estudiante</label><select class="inp" id="dd-est"><option value="">Seleccionar</option>${stuOpts}</select></div>
+  <div class="lf"><label class="lbl">Tipo</label><select class="inp" id="dd-tipo"><option value="taller">Taller</option><option value="observacion">Observación</option><option value="resultado">Resultado</option><option value="otro">Otro</option></select></div>
+  <div class="lf"><label class="lbl">Nombre</label><input class="inp" id="dd-nombre"></div>
+  <div class="lf"><label class="lbl">URL</label><input class="inp" id="dd-url" placeholder="https://drive.google.com/..."></div>
+  <div class="lf"><label class="lbl">Observación</label><input class="inp" id="dd-obs"></div></div>
+  <div class="mfoot"><button class="btn btn-ghost" onclick="cm('m-ddoc')">Cancelar</button><button class="btn btn-blue" onclick="saveDocDocente()">Guardar</button></div></div></div>`;
+}
+function bindDocenteDocs(stus) {
+  const btn=$('btn-ddoc'); if(btn) btn.onclick=()=>om('m-ddoc');
+}
+async function saveDocDocente() {
+  const stuId=$('dd-est').value,nombre=$('dd-nombre').value.trim(),url=$('dd-url').value.trim(),tipo=$('dd-tipo').value,obs=$('dd-obs').value.trim();
+  if(!nombre||!url){toast('Nombre y URL obligatorios','err');return;}
+  await db.from('documentos').insert({nombre,tipo,url,embed_url:url.replace('/view','/preview'),student_id:stuId||null,observacion:obs,fecha:new Date().toISOString().slice(0,10),subido_por:APP.user?APP.user.id:null});
+  toast('Documento guardado'); cm('m-ddoc'); await refresh('documentos'); $('dn-documentos').click();
+}
+
+// ══════════════════════════════════════════════════════
+// ESTUDIANTE
+// ══════════════════════════════════════════════════════
+function initEst() {
+  _currentScreen='est';
+  const stu=APP.user;
+  const sb=$('est-sb-top');
+  if(sb) sb.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--blue2),var(--purple));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:15px">${esc(stu.nombre.charAt(0))}</div><div><div class="sb-logo" style="font-size:12px">${esc(stu.nombre.split(' ')[0])}</div><div class="sb-role">Estudiante</div></div></div>`;
+  eTab('inicio',$('en-inicio'));
+}
+function eTab(tab,el) {
+  document.querySelectorAll('#s-est .ni').forEach(n=>n.classList.remove('on'));
+  if(el)el.classList.add('on'); _currentTab=tab; renderEst(tab);
+}
+function renderEst(tab) {
+  const m=$('emain'); if(!m)return;
+  const stu=APP.user;
+  switch(tab){
+    case 'inicio':     m.innerHTML=rEstInicio(stu); initEstInicioCharts(stu); break;
+    case 'resultados': m.innerHTML=rEstResultados(stu); break;
+    case 'evolucion':  m.innerHTML=rEstEvolucion(stu); initEstEvolChart(stu); break;
+    case 'nivel':      m.innerHTML=rEstNivel(stu); break;
+    case 'simulador':  m.innerHTML=rSimulador(); break;
+    case 'docs':       m.innerHTML=rEstDocs(stu); break;
+  }
+}
+function rEstInicio(stu) {
+  const sims=APP.simulacros;
+  const puntajes=sims.map(sim=>({sim,pts:icfes((APP.notas[sim.id]||{})[stu.id]||{})})).filter(x=>x.pts!=null);
+  const ultimo=puntajes[puntajes.length-1];
+  const docs=APP.docs.filter(d=>d.student_id===stu.id);
+  let trend='';
+  if(puntajes.length>=2){const d=puntajes[puntajes.length-1].pts,p=puntajes[puntajes.length-2].pts;const diff=d-p;trend=`<span style="color:${diff>=0?'var(--green)':'var(--red)'};font-weight:700">${diff>0?'↑ +':diff<0?'↓ ':''} ${Math.abs(diff)} pts vs simulacro anterior</span>`;}
+  const niv=ultimo?nivel(ultimo.pts):{lbl:'Sin datos',cls:'b-gray',color:'var(--text3)',bg:'#f1f5f9'};
+  return `<div class="ph"><div><div style="font-size:11px;color:var(--text3)">Bienvenido,</div><div class="ph-title">${esc(stu.nombre)}</div>${trend?`<div style="font-size:12px;margin-top:4px">${trend}</div>`:''}</div></div>
+  <div class="content">
+    <div class="g4" style="margin-bottom:16px">
+      ${ultimo?`<div class="scard"><div class="scard-lbl">Último puntaje</div><div class="scard-val" style="color:${niv.color}">${ultimo.pts}</div><span class="badge ${niv.cls}">${niv.lbl}</span></div>`:''}
+      <div class="scard"><div class="scard-lbl">Simulacros</div><div class="scard-val">${puntajes.length}</div><div class="scard-sub">de ${sims.length}</div></div>
+      <div class="scard"><div class="scard-lbl">Documentos</div><div class="scard-val">${docs.length}</div></div>
+    </div>
+    ${ultimo?`<div class="g2" style="margin-bottom:16px">
+      <div class="chart-box">
+        <div class="chart-title">Mis áreas — ${esc(ultimo.sim.nombre)}</div>
+        <canvas id="chart-est-areas" height="200"></canvas>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Mi evolución</div>
+        <canvas id="chart-est-evol" height="200"></canvas>
+      </div>
+    </div>`:'<div class="card" style="text-align:center;padding:40px;color:var(--text3)">Aún no tienes resultados</div>'}
+  </div>`;
+}
+function initEstInicioCharts(stu) {
+  const sims=APP.simulacros;
+  const puntajes=sims.map(sim=>({sim,pts:icfes((APP.notas[sim.id]||{})[stu.id]||{})})).filter(x=>x.pts!=null);
+  const ultimo=puntajes[puntajes.length-1]; if(!ultimo)return;
+  const n=(APP.notas[ultimo.sim.id]||{})[stu.id]||{};
+  const areas=[{k:'lec',l:'Lectura'},{k:'mat',l:'Mat.'},{k:'bio',l:'C.Nat.'},{k:'soc',l:'C.Soc.'},{k:'ing',l:'Inglés'}];
+  // Gráfica áreas (radar)
+  destroyChart('est-areas');
+  const c1=document.getElementById('chart-est-areas'); if(c1) CHARTS['est-areas']=new Chart(c1,{
+    type:'radar',
+    data:{labels:areas.map(a=>a.l),datasets:[{label:'Mi puntaje',data:areas.map(a=>n[a.k]||0),backgroundColor:'rgba(37,99,235,.15)',borderColor:'#2563eb',borderWidth:2,pointBackgroundColor:'#2563eb'}]},
+    options:{responsive:true,scales:{r:{min:0,max:100,ticks:{stepSize:20}}},plugins:{legend:{display:false}}}
+  });
+  // Gráfica evolución (línea)
+  destroyChart('est-evol');
+  const c2=document.getElementById('chart-est-evol'); if(c2) CHARTS['est-evol']=new Chart(c2,{
+    type:'line',
+    data:{labels:puntajes.map(x=>x.sim.nombre),datasets:[{label:'Puntaje',data:puntajes.map(x=>x.pts),borderColor:'#2563eb',backgroundColor:'rgba(37,99,235,.1)',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#2563eb',tension:.3,fill:true}]},
+    options:{responsive:true,scales:{y:{min:0,max:500},x:{grid:{display:false}}},plugins:{legend:{display:false}}}
+  });
+}
+function rEstResultados(stu) {
+  const areas=[{k:'lec',l:'Lectura crítica',col:'#2563eb'},{k:'mat',l:'Matemáticas',col:'#7c3aed'},{k:'bio',l:'C. Naturales',col:'#059669'},{k:'soc',l:'C. Sociales',col:'#d97706'},{k:'ing',l:'Inglés',col:'#db2777'}];
+  const body=APP.simulacros.map(sim=>{
+    const n=(APP.notas[sim.id]||{})[stu.id]; if(!n)return '';
+    const pts=icfes(n); if(pts==null)return '';
+    const niv=nivel(pts);
+    const bars=areas.map(a=>{const v=n[a.k];if(v==null)return '';return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div style="width:130px;font-size:12px;font-weight:600">${a.l}</div><div class="bar" style="flex:1"><div class="bar-fill" style="width:${v}%;background:${a.col}"></div></div><div style="width:38px;text-align:right;font-weight:800;font-size:13px;color:${a.col}">${v}%</div></div>`;}).join('');
+    return `<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px"><div><div style="font-weight:800">${esc(sim.nombre)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(sim.fecha)}</div></div><div style="display:flex;align-items:center;gap:12px"><div style="text-align:center"><div style="font-family:'Playfair Display',serif;font-size:30px;font-weight:900;color:var(--blue2)">${pts}</div><span class="badge ${niv.cls}">${niv.lbl}</span></div><button class="btn btn-ghost btn-sm" data-simid="${sim.id}" data-stuid="${stu.id}" onclick="pdfInd(this.dataset.stuid,this.dataset.simid)">📄 PDF</button></div></div>${bars}</div>`;
+  }).join('')||'<div class="card" style="text-align:center;padding:40px;color:var(--text3)">Sin resultados aún</div>';
+  return `<div class="ph"><div><div class="ph-title">Mis Resultados</div><div class="ph-sub">Detalle por simulacro</div></div></div><div class="content">${body}</div>`;
+}
+function initEstEvolChart(stu) {}
+function rEstEvolucion(stu) {
+  const puntajes=APP.simulacros.map(sim=>({sim,pts:icfes((APP.notas[sim.id]||{})[stu.id]||{})})).filter(x=>x.pts!=null);
+  if(!puntajes.length) return `<div class="ph"><div class="ph-title">Evolución</div></div><div class="content"><div class="card" style="text-align:center;padding:40px;color:var(--text3)">Sin datos suficientes</div></div>`;
+  const rows=puntajes.map((x,i)=>{const prev=i>0?puntajes[i-1].pts:null;const d=prev!=null?x.pts-prev:null;const trend=d==null?'—':d>0?`<span style="color:var(--green)">↑+${d}</span>`:d<0?`<span style="color:var(--red)">↓${d}</span>`:'=';const niv=nivel(x.pts);return `<tr><td style="font-weight:700">${esc(x.sim.nombre)}</td><td style="color:var(--text3);font-size:11px">${fmtDate(x.sim.fecha)}</td><td style="text-align:center"><span class="badge ${niv.cls}" style="font-size:13px">${x.pts} pts</span></td><td style="text-align:center"><span class="badge ${niv.cls}">${niv.lbl}</span></td><td style="text-align:center">${trend}</td></tr>`;}).join('');
+  return `<div class="ph"><div><div class="ph-title">Mi Evolución</div></div></div>
+  <div class="content">
+    <div class="chart-box" style="margin-bottom:16px"><div class="chart-title">Progreso de puntaje ICFES</div><canvas id="chart-est-evol2" height="120"></canvas></div>
+    <div class="card tw"><table class="tbl"><thead><tr><th>Simulacro</th><th>Fecha</th><th style="text-align:center">Puntaje</th><th style="text-align:center">Nivel</th><th style="text-align:center">Cambio</th></tr></thead><tbody>${rows}</tbody></table></div>
+  </div>`;
+}
+function rEstNivel(stu) {
+  const body=APP.simulacros.map(sim=>{
+    const n=(APP.notas[sim.id]||{})[stu.id]; if(!n)return '';
+    const pts=icfes(n); if(pts==null)return '';
+    const niv=nivel(pts);
+    const msg=pts<200?`<div class="alert-banner alert-crit" style="margin-top:10px"><span>⚠️</span><span style="font-weight:600;color:var(--red)">Puntaje crítico — habla con tu docente para recibir apoyo.</span></div>`:
+      pts<300?`<div class="alert-banner alert-warn" style="margin-top:10px"><span>💪</span><span style="font-weight:600;color:var(--amber)">Puedes mejorar — enfócate en las áreas con menor puntaje.</span></div>`:
+      `<div class="alert-banner alert-ok" style="margin-top:10px"><span>✅</span><span style="font-weight:600;color:var(--green)">¡Buen desempeño! Sigue así y apunta al nivel superior.</span></div>`;
+    return `<div class="card" style="margin-bottom:14px"><div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px"><div><div style="font-weight:800">${esc(sim.nombre)}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(sim.fecha)}</div></div><div style="display:flex;align-items:center;gap:12px"><span class="badge ${niv.cls}" style="font-size:14px;padding:6px 16px">${niv.lbl}</span><div style="font-family:'Playfair Display',serif;font-size:28px;font-weight:900;color:${niv.color}">${pts} pts</div></div></div>${msg}</div>`;
+  }).join('')||'<div class="card" style="text-align:center;padding:40px;color:var(--text3)">Sin resultados aún</div>';
+  return `<div class="ph"><div><div class="ph-title">Mi Nivel</div><div class="ph-sub">Semáforo de desempeño</div></div></div><div class="content">${body}</div>`;
+}
+function rEstDocs(stu) {
+  const docs=APP.docs.filter(d=>d.student_id===stu.id);
+  const tipos={taller:'Talleres',observacion:'Observaciones',resultado:'Resultados',otro:'Otros'};
+  let body='';
+  Object.keys(tipos).forEach(tipo=>{
+    const td=docs.filter(d=>d.tipo===tipo); if(!td.length)return;
+    body+=`<div style="margin-bottom:18px"><div style="font-weight:700;font-size:13px;margin-bottom:10px">${tipos[tipo]}</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px">${td.map(d=>`<div class="card"><div style="font-weight:700;margin-bottom:4px">${esc(d.nombre)}</div><div style="font-size:11px;color:var(--text3);margin-bottom:8px">📅 ${fmtDate(d.fecha)}</div>${d.observacion?`<div style="font-size:11px;background:var(--graybg);padding:6px 8px;border-radius:6px;margin-bottom:10px">${esc(d.observacion)}</div>`:''}<a class="btn btn-green btn-sm btn-block" href="${esc(d.url||'#')}" target="_blank">👁 Ver documento</a></div>`).join('')}</div></div>`;
+  });
+  return `<div class="ph"><div><div class="ph-title">Mis Documentos</div></div></div><div class="content">${body||'<div class="card" style="text-align:center;padding:40px;color:var(--text3)"><div style="font-size:36px;margin-bottom:8px">📁</div><div style="font-weight:700">Sin documentos aún</div></div>'}</div>`;
+}
+
+// ══════════════════════════════════════════════════════
+// PDF
+// ══════════════════════════════════════════════════════
+function _pdf(title, content) {
+  const css=`body{font-family:Arial,sans-serif;padding:20px;color:#1e293b;font-size:12px}h1{font-size:16px;margin-bottom:2px}h2{font-size:11px;color:#64748b;margin-bottom:14px}table{width:100%;border-collapse:collapse}th{background:#1e3a5f;color:#fff;padding:6px 8px;font-size:11px}td{padding:5px 8px;border-bottom:1px solid #e2e8f0;font-size:11px}.sup{background:#dcfce7;color:#166534;padding:2px 6px;border-radius:3px;font-weight:700}.alt{background:#dbeafe;color:#1d4ed8;padding:2px 6px;border-radius:3px;font-weight:700}.bas{background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:3px;font-weight:700}.baj{background:#fee2e2;color:#991b1b;padding:2px 6px;border-radius:3px;font-weight:700}`;
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>${title}</title><style>${css}</style></head><body><h1>CAJAMAG — ${title}</h1><h2>${new Date().toLocaleDateString('es-CO')}</h2>${content}</body></html>`);
+  w.document.close(); w.onload=()=>w.print();
+}
+function _badgePdf(pts){const n=nivel(pts);const cls=n.cls==='b-sup'?'sup':n.cls==='b-alt'?'alt':n.cls==='b-bas'?'bas':'baj';return `<span class="${cls}">${pts!=null?pts:'—'}</span>`;}
+function pdfComp() {
+  const stus=fStudents(),sims=fSims();
+  const rows=stus.map(s=>`<tr><td><b>${esc(s.nombre)}</b></td>${sims.map(sim=>`<td>${_badgePdf(icfes((APP.notas[sim.id]||{})[s.id]||{}))}</td>`).join('')}</tr>`).join('');
+  _pdf('Comparativo',`<table><thead><tr><th>Estudiante</th>${sims.map(s=>`<th>${esc(s.nombre)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`);
+}
+function pdfSem() {
+  const sim=fSim(); if(!sim)return; const stus=fStudents(); const n=APP.notas[sim.id]||{};
+  const rows=stus.map(s=>`<tr><td><b>${esc(s.nombre)}</b></td><td>${_badgePdf(icfes(n[s.id]||{}))}</td><td>${icfes(n[s.id]||{})!=null?icfes(n[s.id]||{})+' pts':'—'}</td></tr>`).join('');
+  _pdf(`Semáforo — ${esc(sim.nombre)}`,`<table><thead><tr><th>Estudiante</th><th>Nivel</th><th>Puntaje</th></tr></thead><tbody>${rows}</tbody></table>`);
+}
+function pdfInd(stuId,simId) {
+  const stu=APP.students.find(s=>s.id===stuId); const sim=APP.simulacros.find(s=>s.id===simId); if(!stu||!sim)return;
+  const n=(APP.notas[simId]||{})[stuId]||{}; const pts=icfes(n);
+  const areas=[{k:'lec',l:'Lectura crítica'},{k:'mat',l:'Matemáticas'},{k:'bio',l:'C. Naturales'},{k:'soc',l:'C. Sociales'},{k:'ing',l:'Inglés'}];
+  _pdf(`Informe — ${esc(stu.nombre)}`,`<p><b>Estudiante:</b> ${esc(stu.nombre)}</p><p><b>Simulacro:</b> ${esc(sim.nombre)} · <b>Fecha:</b> ${fmtDate(sim.fecha)}</p><p><b>Puntaje:</b> ${_badgePdf(pts)}</p><br><table><thead><tr><th>Área</th><th>Puntaje</th></tr></thead><tbody>${areas.map(a=>`<tr><td>${a.l}</td><td>${n[a.k]!=null?n[a.k]+'%':'—'}</td></tr>`).join('')}</tbody></table>`);
+}
+
+// ══════════════════════════════════════════════════════
+// EXPORT / IMPORT JSON
+// ══════════════════════════════════════════════════════
+async function exportJSON() {
+  const data={version:'2.0',exportDate:new Date().toISOString(),grupos:APP.grupos,students:APP.students,simulacros:APP.simulacros,notas:APP.notas,docs:APP.docs,docentes:APP.docentes};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download=`cajamag_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  URL.revokeObjectURL(url); toast('Exportado ✓');
+}
+async function importJSON(input) {
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=async e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(data.students?.length) await db.from('students').upsert(data.students.map(s=>({id:s.id,nombre:s.nombre||s.name,cedula:s.cedula||s.credenciales,grado:s.grado,grupo_nombre:s.grupo_nombre||s.grupo,grupo_id:s.grupo_id||s.grupoId||null})),{onConflict:'id'});
+      if(data.simulacros?.length) await db.from('simulacros').upsert(data.simulacros.map(s=>({id:s.id,numero:s.numero||s.num||1,nombre:s.nombre||s.name,fecha:s.fecha||s.date||null,descripcion:s.descripcion||s.desc||'',q_bio:s.q_bio||s.qBio||0,q_ing:s.q_ing||s.qIng||0,q_lec:s.q_lec||s.qLec||0,q_mat:s.q_mat||s.qMat||0,q_soc:s.q_soc||s.qSoc||0})),{onConflict:'id'});
+      if(data.notas){const rows=[];Object.keys(data.notas).forEach(simId=>{Object.keys(data.notas[simId]).forEach(stuId=>{const n=data.notas[simId][stuId];rows.push({student_id:stuId,simulacro_id:simId,bio:n.bio,ing:n.ing,lec:n.lec,mat:n.mat,soc:n.soc});});});if(rows.length)await db.from('notas').upsert(rows,{onConflict:'student_id,simulacro_id'});}
+      toast('Importación completada ✓');
+      await loadAll(); rerender();
+    }catch(err){toast('Error al importar: '+err.message,'err');}
+  };
+  reader.readAsText(file);
+}
+
+// ══════════════════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════════════════
+async function boot() {
+  try {
+    await loadAll();
+    checkRem();
+    document.getElementById('loader').style.opacity='0';
+    setTimeout(()=>{ document.getElementById('loader').style.display='none'; $('s-login').style.display='flex'; },300);
+  } catch(e) {
+    $('loader').innerHTML=`<h1 style="color:var(--red)">Error de conexión</h1><p style="margin:10px 0">Verifica tu internet</p><button onclick="location.reload()" style="padding:10px 20px;background:var(--blue2);color:#fff;border:none;border-radius:8px;cursor:pointer">Reintentar</button>`;
+    console.error(e);
+  }
+}
+boot();
+</script>
+</body>
+</html>
